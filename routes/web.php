@@ -6,7 +6,11 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\LojaController;
 
-Route::get('/', [LojaController::class, 'index'])->name('loja.index');
+Route::get('/', function () {
+    return redirect()->route('loja.index');
+});
+
+Route::get('/loja', [LojaController::class, 'index'])->name('loja.index');
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
