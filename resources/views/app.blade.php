@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <!-- O Inertia irá injetar o título aqui (da sua tag <Head> no Vue) -->
-        <title inertia>{{ config('app.name', 'JR Mundo Tech') }}</title>
+        <title> Sejam bem vindos a JR Mundo Tech </title>
 
         <!-- Fonts (O Breeze adiciona isso por padrão) -->
         <link rel="preconnect" href="https://fonts.bunny.net">
