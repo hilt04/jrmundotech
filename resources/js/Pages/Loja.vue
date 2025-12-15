@@ -14,6 +14,15 @@ const props = defineProps({
 const cart = ref([]);
 const isCartVisible = ref(false);
 
+// Helper de teste (somente quando ?e2e=1) para adicionar um produto de teste ao carrinho
+if (typeof window !== 'undefined' && window.location && window.location.search.includes('e2e=1')) {
+    window.addTestProduct = () => {
+        if (!cart.value.find(p => p && p.id === 'e2e-test-product')) {
+            cart.value.push({ id: 'e2e-test-product', name: 'Produto Teste (E2E)', price: 10.0, quantity: 1, image_url: '' });
+        }
+    };
+}
+
 // Lógica do Usuário ///
 const isUserDropdownVisible = ref(false);
 const page = usePage();
@@ -41,6 +50,10 @@ const banners = ref([
 const cartItemCount = computed(() => {
     return cart.value.reduce((sum, item) => sum + item.quantity, 0);
 });
+
+// Retirada e Pagamento (opções do dropdown do carrinho)
+const pickupMethod = ref('retirar'); // 'retirar' ou 'entrega'
+const paymentMethod = ref('especie_pix'); // 'especie_pix' ou 'cartao'
 
 const addToCart = (product) => {
     const itemInCart = cart.value.find(item => item.id === product.id);
@@ -93,7 +106,10 @@ const sendToWhatsApp = () => {
         message += '-----------------------\n';
     });
 
-    message += `\n*Total do Pedido: ${formatCurrency(totalCost.value)}*`;
+    // Adiciona método de retirada e forma de pagamento ao pedido
+    message += `\n*Retirada:* ${pickupMethod.value === 'retirar' ? 'Retirar em loja' : 'Entrega'}`;
+    message += `\n*Pagamento:* ${paymentMethod.value === 'especie_pix' ? 'Espécie/PIX' : 'Cartão'}`;
+    message += `\n\n*Total do Pedido: ${formatCurrency(totalCost.value)}*`;
     const encodedMessage = encodeURIComponent(message);
     const whatsappURL = `https://wa.me/${storePhoneNumber}?text=${encodedMessage}`;
     window.open(whatsappURL, '_blank');
@@ -154,7 +170,7 @@ const sendPromotionToWhatsApp = (message) => {
                              </button>
 
                              <!-- Dropdown de Login/Menu -->
-                             <div v-if="isUserDropdownVisible" @click.outside="isUserDropdownVisible = false" class="absolute right-0 mt-2 w-72 bg-white border border-gray-200 p-4 rounded-lg shadow-xl z-50">
+                             <div v-if="isUserDropdownVisible" @click.outside="isUserDropdownVisible = false" @click.stop @mousedown.stop @pointerdown.stop @focusin="isUserDropdownVisible = true" class="absolute right-0 mt-2 w-72 bg-white border border-gray-200 p-4 rounded-lg shadow-xl z-50" tabindex="-1">
                                 
                                 <!-- Se NÃO logado: Form de Login -->
                                 <div v-if="!user">
@@ -162,12 +178,12 @@ const sendPromotionToWhatsApp = (message) => {
                                     <form @submit.prevent="handleLogin">
                                         <div class="mb-3">
                                             <label class="block text-sm text-gray-600 mb-1">Email</label>
-                                            <input type="email" v-model="loginForm.email" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
+                                            <input type="email" v-model="loginForm.email" @focus="isUserDropdownVisible = true" @mousedown.stop @pointerdown.stop @click.stop class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
                                             <div v-if="loginForm.errors.email" class="text-red-500 text-xs mt-1">{{ loginForm.errors.email }}</div>
                                         </div>
                                         <div class="mb-4">
                                             <label class="block text-sm text-gray-600 mb-1">Senha</label>
-                                            <input type="password" v-model="loginForm.password" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
+                                            <input type="password" v-model="loginForm.password" @focus="isUserDropdownVisible = true" @mousedown.stop @pointerdown.stop @click.stop class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
                                         </div>
                                         <button type="submit" :disabled="loginForm.processing" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition-colors">
                                             {{ loginForm.processing ? 'Entrando...' : 'Entrar' }}
@@ -200,7 +216,7 @@ const sendPromotionToWhatsApp = (message) => {
                                 </span>
                             </button>
                             <!-- Dropdown Carrinho (Sem alterações funcionais) -->
-                            <div v-if="isCartVisible" @click.outside="isCartVisible = false" class="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-gray-200 p-4 rounded-lg shadow-xl z-40">
+                            <div v-if="isCartVisible" @click.outside="isCartVisible = false" @click.stop @mousedown.stop class="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-gray-200 p-4 rounded-lg shadow-xl z-40">
                                 <h2 class="text-xl font-semibold mb-3 flex items-center text-gray-700">Meu Carrinho</h2>
                                 <div v-if="cart.length === 0" class="text-gray-500 italic py-8 text-center">Seu carrinho está vazio.</div>
                                 <ul v-else class="divide-y divide-gray-200 max-h-64 overflow-y-auto pr-2 mb-4">
@@ -216,8 +232,38 @@ const sendPromotionToWhatsApp = (message) => {
                                     </li>
                                 </ul>
                                 <div v-if="cart.length > 0">
-                                    <div class="flex justify-between items-center mb-4"><span class="font-bold">Total:</span><span class="text-blue-600 font-bold">{{ formatCurrency(totalCost) }}</span></div>
-                                    <button @click="sendToWhatsApp" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition-colors">Finalizar Pedido</button>
+                                    <div class="mb-4">
+                                        <div class="mb-3">
+                                            <label class="block text-sm font-semibold text-gray-700 mb-1">Retirada</label>
+                                            <div class="flex items-center space-x-3">
+                                                <label class="inline-flex items-center text-sm">
+                                                    <input type="radio" v-model="pickupMethod" value="retirar" class="form-radio h-4 w-4 text-blue-600" />
+                                                    <span class="ms-2">Retirar em loja</span>
+                                                </label>
+                                                <label class="inline-flex items-center text-sm">
+                                                    <input type="radio" v-model="pickupMethod" value="entrega" class="form-radio h-4 w-4 text-blue-600" />
+                                                    <span class="ms-2">Entrega</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="block text-sm font-semibold text-gray-700 mb-1">Forma de pagamento</label>
+                                            <div class="flex items-center space-x-3">
+                                                <label class="inline-flex items-center text-sm">
+                                                    <input type="radio" v-model="paymentMethod" value="especie_pix" class="form-radio h-4 w-4 text-blue-600" />
+                                                    <span class="ms-2">Espécie/PIX</span>
+                                                </label>
+                                                <label class="inline-flex items-center text-sm">
+                                                    <input type="radio" v-model="paymentMethod" value="cartao" class="form-radio h-4 w-4 text-blue-600" />
+                                                    <span class="ms-2">Cartão</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-between items-center mb-4"><span class="font-bold">Total:</span><span class="text-blue-600 font-bold">{{ formatCurrency(totalCost) }}</span></div>
+                                        <button @click="sendToWhatsApp" class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition-colors">Finalizar Pedido</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
