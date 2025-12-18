@@ -27,8 +27,9 @@ const { chromium } = require('playwright');
 
       // Debug: dump cart dropdown innerHTML to help identify selectors
       const cartHtml = await page.evaluate(() => {
-        const el = Array.from(document.querySelectorAll('div')).find(d => d.textContent && d.textContent.includes('Meu Carrinho'));
-        return el ? el.innerHTML : null;
+        const header = Array.from(document.querySelectorAll('h2')).find(h => h.textContent && h.textContent.trim() === 'Meu Carrinho');
+        const container = header ? header.closest('div') : Array.from(document.querySelectorAll('div')).find(d => d.textContent && d.textContent.includes('Meu Carrinho'));
+        return container ? container.innerHTML : null;
       });
       console.log('CART HTML SNIPPET:', cartHtml ? cartHtml.slice(0, 800) : 'none');
       // List all radio inputs in the cart dropdown for debugging
@@ -87,6 +88,11 @@ const { chromium } = require('playwright');
       return btn ? btn.outerHTML : null;
     });
     console.log('FINALIZAR BUTTON OUTER:', finalizeExists);
+    const totalBlock = await page.evaluate(() => {
+      const el = Array.from(document.querySelectorAll('div')).find(d => d.textContent && d.textContent.includes('Total:'));
+      return el ? el.outerHTML : null;
+    });
+    console.log('TOTAL BLOCK OUTER:', totalBlock ? totalBlock.slice(0, 500) : 'none');
 
     // Try clicking the Finalizar button (search by text)
     const finalizeBtn = page.locator('button', { hasText: 'Finalizar Pedido' });
