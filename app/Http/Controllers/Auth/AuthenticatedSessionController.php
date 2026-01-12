@@ -33,6 +33,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Redireciona admin para o cadastro de produtos, outros para dashboard
+        $user = Auth::user();
+        if ($user && ($user->is_admin ?? false)) {
+            return redirect()->route('admin.products.create');
+        }
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

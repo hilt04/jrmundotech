@@ -1,5 +1,6 @@
 <script setup>
 
+
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 
@@ -36,7 +37,17 @@ const loginForm = useForm({
 
 const handleLogin = () => {
     loginForm.post(route('login'), {
-        onFinish: () => loginForm.reset('password'),
+        onFinish: () => {
+            loginForm.reset('password');
+            isUserDropdownVisible.value = false;
+        },
+        onError: (errors) => {
+            if (errors.email || errors.password) {
+                alert('Erro ao fazer login: ' + (errors.email || errors.password));
+            } else {
+                alert('Erro desconhecido ao fazer login.');
+            }
+        },
     });
 };
 
@@ -170,7 +181,7 @@ const sendPromotionToWhatsApp = (message) => {
                              </button>
 
                              <!-- Dropdown de Login/Menu -->
-                             <div v-if="isUserDropdownVisible" @click.outside="isUserDropdownVisible = false" @click.stop @mousedown.stop @pointerdown.stop @focusin="isUserDropdownVisible = true" class="absolute right-0 mt-2 w-72 bg-white border border-gray-200 p-4 rounded-lg shadow-xl z-50" tabindex="-1">
+                             <div v-if="isUserDropdownVisible" class="absolute right-0 mt-2 w-72 bg-white border border-gray-200 p-4 rounded-lg shadow-xl z-50" tabindex="-1">
                                 
                                 <!-- Se NÃO logado: Form de Login -->
                                 <div v-if="!user">
@@ -178,12 +189,12 @@ const sendPromotionToWhatsApp = (message) => {
                                     <form @submit.prevent="handleLogin">
                                         <div class="mb-3">
                                             <label class="block text-sm text-gray-600 mb-1">Email</label>
-                                            <input type="email" v-model="loginForm.email" @focus="isUserDropdownVisible = true" @mousedown.stop @pointerdown.stop @click.stop class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
+                                            <input type="email" v-model="loginForm.email" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
                                             <div v-if="loginForm.errors.email" class="text-red-500 text-xs mt-1">{{ loginForm.errors.email }}</div>
                                         </div>
                                         <div class="mb-4">
                                             <label class="block text-sm text-gray-600 mb-1">Senha</label>
-                                            <input type="password" v-model="loginForm.password" @focus="isUserDropdownVisible = true" @mousedown.stop @pointerdown.stop @click.stop class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
+                                            <input type="password" v-model="loginForm.password" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 p-2" required>
                                         </div>
                                         <button type="submit" :disabled="loginForm.processing" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition-colors">
                                             {{ loginForm.processing ? 'Entrando...' : 'Entrar' }}
@@ -192,16 +203,20 @@ const sendPromotionToWhatsApp = (message) => {
                                 </div>
 
                                 <!-- Se logado: Menu Admin -->
-                                <div v-else>
-                                    <p class="text-sm text-gray-500 mb-2">Olá, <span class="font-bold text-gray-800">{{ user.name }}</span></p>
-                                    <hr class="my-2">
-                                    <Link :href="route('admin.products.create')" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded font-semibold">
-                                        + Adicionar Produto
-                                    </Link>
-                                    <Link :href="route('logout')" method="post" as="button" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded mt-1">
-                                        Sair
-                                    </Link>
-                                </div>
+                                                                <div v-else>
+                                                                        <p class="text-sm text-gray-500 mb-2" v-if="user">Olá, <span class="font-bold text-gray-800">{{ user.name }}</span></p>
+                                                                        <hr class="my-2" v-if="user">
+                                                                        <Link
+                                                                            v-if="user && user.is_admin"
+                                                                            :href="route('admin.products.create')"
+                                                                            class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded font-semibold"
+                                                                        >
+                                                                            + Adicionar Produto
+                                                                        </Link>
+                                                                        <Link v-if="user" :href="route('logout')" method="post" as="button" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded mt-1">
+                                                                                Sair
+                                                                        </Link>
+                                                                </div>
                              </div>
                         </div>
 
